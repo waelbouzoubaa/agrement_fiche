@@ -1,0 +1,27 @@
+# Env (ne jamais committer les secrets)
+.env
+.env.local
+
+# Base SQLite locale
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (fichiers PDF des fiches techniques)
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit cache
+.streamlit/secrets.toml

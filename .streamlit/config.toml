@@ -1,0 +1,15 @@
+[theme]
+# Charte graphique Ramery 2023
+primaryColor        = "#003D7C"   # Bleu Ramery — couleur principale
+backgroundColor     = "#FFFFFF"   # Fond blanc
+secondaryBackgroundColor = "#EEF3FA"  # Bleu très clair (sidebar, inputs)
+textColor           = "#4A4A49"   # Gris corporate Ramery
+font                = "sans serif"
+
+[server]
+headless            = true
+enableCORS          = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats    = false

@@ -1,0 +1,41 @@
+# ── Production : Streamlit + PostgreSQL ────────────────────────────────────
+# Usage : docker compose up -d
+#
+# Pour passer en SQLite → utilise docker-compose.sqlite.yml :
+#   docker compose -f docker-compose.sqlite.yml up -d
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-ramery2024}@db:5432/agrement
+      - UPLOADS_DIR=/app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+      # Logo Ramery (optionnel)
+      - ./logo.png:/app/logo.png:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=agrement
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ramery2024}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d agrement"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  uploads_data:
+  postgres_data:

@@ -1,0 +1,18 @@
+# ── Docker simple : SQLite (pas besoin de PostgreSQL) ──────────────────────
+# Usage : docker compose -f docker-compose.sqlite.yml up -d
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_URL=sqlite:////data/agrement.db
+      - UPLOADS_DIR=/data/uploads
+    volumes:
+      - agrement_data:/data
+      - ./logo.png:/app/logo.png:ro
+
+volumes:
+  agrement_data:
