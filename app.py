@@ -1,8 +1,16 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
+
+def _round_logo(path: str, size: int = 128) -> Image.Image:
+    img = Image.open(path).convert("RGBA").resize((size, size), Image.LANCZOS)
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
+    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    result.paste(img, mask=mask)
+    return result
 
 try:
-    _icon = Image.open("logo.png")
+    _icon = _round_logo("logo.png")
 except Exception:
     _icon = "🏗️"
 
