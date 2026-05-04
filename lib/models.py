@@ -45,6 +45,7 @@ class Agrement(Base):
     category = Column(String(200), default="")
     submitted_by = Column(String(200), default="")
     submitted_at = Column(DateTime)
-    datasheet_path = Column(String(500))
+    datasheet_path = Column(String(500))   # ancien champ local, conservé pour migration
+    datasheet_url  = Column(String(500))   # blob GCS (ex: datasheets/abc123.pdf)
     status = Column(String(50), default="pending")
     project = relationship("Project", back_populates="agrements")

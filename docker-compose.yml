@@ -13,10 +13,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-ramery2024}@db:5432/agrement
       - UPLOADS_DIR=/app/uploads
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp-key.json
+      - GCS_BUCKET=${GCS_BUCKET:-ramery-agrement}
     volumes:
       - uploads_data:/app/uploads
-      # Logo Ramery (optionnel)
       - ./logo.png:/app/logo.png:ro
+      - ./gcp-key.json:/run/secrets/gcp-key.json:ro
     depends_on:
       db:
         condition: service_healthy

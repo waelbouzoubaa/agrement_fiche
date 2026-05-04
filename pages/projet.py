@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 import streamlit as st
 from lib.db import get_db, UPLOADS_DIR, init_db
-from lib import crud
+from lib import crud, storage
 from lib.pdf import generate_doe
 
 init_db()
@@ -208,31 +208,33 @@ else:
         cols[3].write(a["category"] or "—")
 
         with cols[4]:
-            if a["datasheet_path"]:
-                ds_path = os.path.join(UPLOADS_DIR, a["datasheet_path"])
-                if os.path.exists(ds_path):
-                    with open(ds_path, "rb") as f:
-                        st.download_button("📄 PDF", data=f.read(),
-                                           file_name=os.path.basename(a["datasheet_path"]),
-                                           mime="application/pdf",
-                                           key=f"dl_{a['id']}")
+            blob = a.get("datasheet_url")
+            if blob:
+                try:
+                    signed_url = storage.get_download_url(blob)
+                    st.link_button("📄 Voir PDF", signed_url)
+                except Exception as e:
+                    st.warning(f"Lien indisponible : {e}")
                 if st.button("✕ Retirer", key=f"rm_{a['id']}"):
-                    if os.path.exists(ds_path):
-                        os.remove(ds_path)
+                    try:
+                        storage.delete_datasheet(blob)
+                    except Exception:
+                        pass
                     with get_db() as db:
-                        crud.update_agrement_datasheet(db, a["id"], None)
+                        crud.update_agrement_datasheet_url(db, a["id"], None)
                     st.rerun()
             else:
                 up = st.file_uploader("PDF", type="pdf", key=f"up_{a['id']}",
                                       label_visibility="collapsed")
                 if up:
-                    os.makedirs(UPLOADS_DIR, exist_ok=True)
-                    fname = f"{a['id']}.pdf"
-                    with open(os.path.join(UPLOADS_DIR, fname), "wb") as f:
-                        f.write(up.getvalue())
-                    with get_db() as db:
-                        crud.update_agrement_datasheet(db, a["id"], fname)
-                    st.rerun()
+                    with st.spinner("Upload en cours..."):
+                        try:
+                            blob_name = storage.upload_datasheet(up.getvalue(), a["id"])
+                            with get_db() as db:
+                                crud.update_agrement_datasheet_url(db, a["id"], blob_name)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur upload GCS : {e}")
 
         with cols[5]:
             if st.button("🗑️", key=f"delag_{a['id']}"):

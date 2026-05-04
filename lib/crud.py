@@ -31,6 +31,7 @@ def _agrement_dict(a: Agrement) -> dict:
         "submitted_by": a.submitted_by or "",
         "submitted_at": a.submitted_at,
         "datasheet_path": a.datasheet_path,
+        "datasheet_url": a.datasheet_url,
         "status": a.status or "pending",
         "project_id": a.project_id,
     }
@@ -152,6 +153,15 @@ def update_agrement_datasheet(db: Session, agrement_id: str, path: str | None) -
     a = db.query(Agrement).filter(Agrement.id == agrement_id).first()
     if a:
         a.datasheet_path = path
+        db.flush()
+        return _agrement_dict(a)
+    return None
+
+
+def update_agrement_datasheet_url(db: Session, agrement_id: str, blob_name: str | None) -> dict | None:
+    a = db.query(Agrement).filter(Agrement.id == agrement_id).first()
+    if a:
+        a.datasheet_url = blob_name
         db.flush()
         return _agrement_dict(a)
     return None

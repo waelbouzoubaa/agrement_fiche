@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Clé GCP — ne jamais committer
+gcp-key.json
+
 # Base SQLite locale
 *.db
 *.db-shm

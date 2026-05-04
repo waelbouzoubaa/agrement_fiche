@@ -33,5 +33,20 @@ def get_db():
 
 def init_db():
     from lib import models  # noqa: F401
+    from sqlalchemy import text
     Base.metadata.create_all(engine)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
+    # Migration : ajout colonne datasheet_url si elle n'existe pas encore
+    with engine.connect() as conn:
+        try:
+            if "postgresql" in DATABASE_URL:
+                conn.execute(text(
+                    "ALTER TABLE agrements ADD COLUMN IF NOT EXISTS datasheet_url VARCHAR(500)"
+                ))
+            else:
+                conn.execute(text(
+                    "ALTER TABLE agrements ADD COLUMN datasheet_url VARCHAR(500)"
+                ))
+            conn.commit()
+        except Exception:
+            pass  # colonne déjà présente
