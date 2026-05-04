@@ -413,7 +413,16 @@ def generate_doe(project: dict, agrements: list[dict], uploads_dir: str) -> byte
         buf.seek(0)
         writer.add_page(PdfReader(buf).pages[0])
 
-        if a.get("datasheet_path"):
+        blob = a.get("datasheet_url")
+        if blob:
+            try:
+                from lib.storage import download_datasheet
+                pdf_bytes = download_datasheet(blob)
+                for page in PdfReader(BytesIO(pdf_bytes)).pages:
+                    writer.add_page(page)
+            except Exception:
+                pass
+        elif a.get("datasheet_path"):
             ds = os.path.join(uploads_dir, a["datasheet_path"])
             if os.path.exists(ds):
                 try:

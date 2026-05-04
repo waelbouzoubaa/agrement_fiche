@@ -56,6 +56,13 @@ def get_download_url(blob_name: str, expiry_minutes: int = 60) -> str:
     )
 
 
+def download_datasheet(blob_name: str) -> bytes:
+    """Télécharge les bytes d'un blob GCS."""
+    client = _get_client()
+    blob = client.bucket(_bucket_name()).blob(blob_name)
+    return blob.download_as_bytes()
+
+
 def delete_datasheet(blob_name: str) -> None:
     """Supprime le blob GCS si il existe."""
     client = _get_client()

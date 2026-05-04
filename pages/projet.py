@@ -211,10 +211,13 @@ else:
             blob = a.get("datasheet_url")
             if blob:
                 try:
-                    signed_url = storage.get_download_url(blob)
-                    st.link_button("📄 Voir PDF", signed_url)
+                    pdf_bytes = storage.download_datasheet(blob)
+                    safe_name = f"fiche_{a['number']}_{a['designation'][:20]}.pdf".replace(" ", "_")
+                    st.download_button("📄 Télécharger", data=pdf_bytes,
+                                       file_name=safe_name, mime="application/pdf",
+                                       key=f"dl_{a['id']}")
                 except Exception as e:
-                    st.warning(f"Lien indisponible : {e}")
+                    st.warning(f"Fichier indisponible : {e}")
                 if st.button("✕ Retirer", key=f"rm_{a['id']}"):
                     try:
                         storage.delete_datasheet(blob)
