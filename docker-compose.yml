@@ -9,7 +9,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "8502:8501"
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-ramery2024}@db:5432/agrement
       - UPLOADS_DIR=/app/uploads
