@@ -10,7 +10,7 @@ init_db()
 
 # ── Reset formulaire (doit s'exécuter AVANT l'instanciation des widgets) ──────
 if st.session_state.get("ag_reset_form"):
-    for k in ["ag_des_select", "ag_supplier", "ag_category",
+    for k in ["ag_des_select", "ag_supplier_select", "ag_supplier", "ag_category",
               "ag_des_manual", "ag_submitted_by", "show_add_form"]:
         st.session_state.pop(k, None)
     st.session_state.pop("ag_reset_form", None)
@@ -26,6 +26,7 @@ with get_db() as db:
     project   = crud.get_project(db, project_id)
     agrements = crud.get_agrements(db, project_id)
     products  = crud.get_products(db)
+    suppliers = crud.get_suppliers(db)
 
 if not project:
     st.error("Chantier introuvable.")
@@ -97,6 +98,8 @@ if show_form:
     # Initialisation OBLIGATOIRE avant les widgets (évite le KeyError)
     if "ag_des_select" not in st.session_state:
         st.session_state["ag_des_select"] = "— Nouveau produit —"
+    if "ag_supplier_select" not in st.session_state:
+        st.session_state["ag_supplier_select"] = "— Nouveau fournisseur —"
     if "ag_supplier" not in st.session_state:
         st.session_state["ag_supplier"] = ""
     if "ag_category" not in st.session_state:
@@ -113,14 +116,15 @@ if show_form:
     des_options = ["— Nouveau produit —"] + [p["designation"] for p in products]
 
     def on_designation_change():
-        # Accès sécurisé avec .get() au cas où la clé serait absente
         sel = st.session_state.get("ag_des_select", "— Nouveau produit —")
         if sel == "— Nouveau produit —":
+            st.session_state["ag_supplier_select"] = "— Nouveau fournisseur —"
             st.session_state["ag_supplier"] = ""
             st.session_state["ag_category"] = ""
             return
         matched = next((p for p in products if p["designation"] == sel), None)
         if matched:
+            st.session_state["ag_supplier_select"] = matched["supplier_name"]
             st.session_state["ag_supplier"] = matched["supplier_name"]
             st.session_state["ag_category"] = matched.get("category") or ""
 
@@ -140,12 +144,30 @@ if show_form:
         designation_manuelle = None
         st.caption(f"✅ **{st.session_state['ag_des_select']}**")
 
-    # Fournisseur — autofillé et modifiable
-    st.text_input(
+    # ── Fournisseur avec suggestions ─────────────────────────────────────────
+    sup_options = ["— Nouveau fournisseur —"] + [s["name"] for s in suppliers]
+
+    def on_supplier_change():
+        sel = st.session_state.get("ag_supplier_select", "— Nouveau fournisseur —")
+        if sel != "— Nouveau fournisseur —":
+            st.session_state["ag_supplier"] = sel
+
+    st.selectbox(
         "Fournisseur / Provenance *",
-        key="ag_supplier",
-        placeholder="ALKERN / NORMANDY TUB",
+        sup_options,
+        key="ag_supplier_select",
+        on_change=on_supplier_change,
+        help="Sélectionnez un fournisseur existant ou choisissez 'Nouveau fournisseur'",
     )
+
+    if st.session_state["ag_supplier_select"] == "— Nouveau fournisseur —":
+        st.text_input(
+            "Nom du fournisseur *",
+            key="ag_supplier",
+            placeholder="ALKERN / NORMANDY TUB",
+        )
+    else:
+        st.session_state["ag_supplier"] = st.session_state["ag_supplier_select"]
 
     c1, c2 = st.columns(2)
     c1.text_input("Catégorie / Utilisation", key="ag_category",
