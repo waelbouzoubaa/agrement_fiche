@@ -63,7 +63,7 @@ with col_doe:
     if st.button("⬇️ Générer le DOE PDF", disabled=len(agrements) == 0,
                  type="primary", use_container_width=True):
         with st.spinner("Génération du PDF..."):
-            pdf_bytes = generate_doe(project, agrements, UPLOADS_DIR)
+            pdf_bytes = generate_doe(project, agrements, UPLOADS_DIR, products)
         safe = "".join(c for c in project["name"] if c.isalnum() or c in " _-")[:40]
         st.download_button("📥 Télécharger le DOE", data=pdf_bytes,
                            file_name=f"DOE_{safe}.pdf", mime="application/pdf",
@@ -208,36 +208,22 @@ else:
         cols[3].write(a["category"] or "—")
 
         with cols[4]:
-            blob = a.get("datasheet_url")
+            # Cherche la fiche technique : d'abord sur le produit, sinon sur l'agrément
+            matched_product = next(
+                (p for p in products if p["designation"] == a["designation"]), None
+            )
+            blob = (matched_product or {}).get("datasheet_url") or a.get("datasheet_url")
             if blob:
                 try:
                     pdf_bytes = storage.download_datasheet(blob)
-                    safe_name = f"fiche_{a['number']}_{a['designation'][:20]}.pdf".replace(" ", "_")
-                    st.download_button("📄 Télécharger", data=pdf_bytes,
+                    safe_name = f"FT_{a['number']}_{a['designation'][:20]}.pdf".replace(" ", "_")
+                    st.download_button("📄 Fiche technique", data=pdf_bytes,
                                        file_name=safe_name, mime="application/pdf",
                                        key=f"dl_{a['id']}")
                 except Exception as e:
                     st.warning(f"Fichier indisponible : {e}")
-                if st.button("✕ Retirer", key=f"rm_{a['id']}"):
-                    try:
-                        storage.delete_datasheet(blob)
-                    except Exception:
-                        pass
-                    with get_db() as db:
-                        crud.update_agrement_datasheet_url(db, a["id"], None)
-                    st.rerun()
             else:
-                up = st.file_uploader("PDF", type="pdf", key=f"up_{a['id']}",
-                                      label_visibility="collapsed")
-                if up:
-                    with st.spinner("Upload en cours..."):
-                        try:
-                            blob_name = storage.upload_datasheet(up.getvalue(), a["id"])
-                            with get_db() as db:
-                                crud.update_agrement_datasheet_url(db, a["id"], blob_name)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erreur upload GCS : {e}")
+                st.caption("— Aller dans **Produits** pour uploader la fiche technique")
 
         with cols[5]:
             if st.button("🗑️", key=f"delag_{a['id']}"):

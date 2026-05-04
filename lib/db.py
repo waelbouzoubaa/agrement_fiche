@@ -36,17 +36,22 @@ def init_db():
     from sqlalchemy import text
     Base.metadata.create_all(engine)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    # Migration : ajout colonne datasheet_url si elle n'existe pas encore
+    # Migrations : ajout des colonnes manquantes
     with engine.connect() as conn:
-        try:
-            if "postgresql" in DATABASE_URL:
-                conn.execute(text(
-                    "ALTER TABLE agrements ADD COLUMN IF NOT EXISTS datasheet_url VARCHAR(500)"
-                ))
-            else:
-                conn.execute(text(
-                    "ALTER TABLE agrements ADD COLUMN datasheet_url VARCHAR(500)"
-                ))
-            conn.commit()
-        except Exception:
-            pass  # colonne déjà présente
+        migrations = [
+            ("agrements",  "datasheet_url"),
+            ("products",   "datasheet_url"),
+        ]
+        for table, col in migrations:
+            try:
+                if "postgresql" in DATABASE_URL:
+                    conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} VARCHAR(500)"
+                    ))
+                else:
+                    conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {col} VARCHAR(500)"
+                    ))
+                conn.commit()
+            except Exception:
+                pass  # colonne déjà présente

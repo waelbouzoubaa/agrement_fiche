@@ -95,9 +95,17 @@ def get_products(db: Session, q: str = "") -> list[dict]:
         query = query.filter(Product.designation.ilike(f"%{q}%"))
     return [
         {"id": p.id, "designation": p.designation,
-         "supplier_name": p.supplier_name, "category": p.category or ""}
+         "supplier_name": p.supplier_name, "category": p.category or "",
+         "datasheet_url": p.datasheet_url}
         for p in query.order_by(Product.designation).all()
     ]
+
+
+def update_product_datasheet_url(db: Session, product_id: str, blob_name: str | None) -> None:
+    p = db.query(Product).filter(Product.id == product_id).first()
+    if p:
+        p.datasheet_url = blob_name
+        db.flush()
 
 
 def create_product(db: Session, designation: str, supplier_name: str, category: str) -> dict:

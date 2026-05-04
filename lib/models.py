@@ -33,6 +33,7 @@ class Product(Base):
     designation = Column(String(500), nullable=False)
     category = Column(String(200), default="")
     supplier_name = Column(String(500), default="")
+    datasheet_url = Column(String(500))  # blob GCS de la fiche technique produit
 
 
 class Agrement(Base):

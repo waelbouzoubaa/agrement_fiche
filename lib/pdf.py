@@ -380,7 +380,8 @@ def draw_liste(c, project_name: str, items: list[dict], logo_path: str | None):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_doe(project: dict, agrements: list[dict], uploads_dir: str) -> bytes:
+def generate_doe(project: dict, agrements: list[dict], uploads_dir: str,
+                 products: list[dict] | None = None) -> bytes:
     logo_path = find_logo()
 
     # Items per list page
@@ -413,7 +414,8 @@ def generate_doe(project: dict, agrements: list[dict], uploads_dir: str) -> byte
         buf.seek(0)
         writer.add_page(PdfReader(buf).pages[0])
 
-        blob = a.get("datasheet_url")
+        matched = next((p for p in (products or []) if p["designation"] == a["designation"]), None)
+        blob = (matched or {}).get("datasheet_url") or a.get("datasheet_url")
         if blob:
             try:
                 from lib.storage import download_datasheet

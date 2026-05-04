@@ -1,6 +1,6 @@
 import streamlit as st
 from lib.db import get_db, init_db
-from lib import crud
+from lib import crud, storage
 
 init_db()
 
@@ -17,13 +17,13 @@ with col_title:
         ' <span class="accent">·</span> Produits</p>',
         unsafe_allow_html=True,
     )
-st.caption("Base de données des produits — utilisée pour l'autocomplete lors de la saisie des fiches")
+st.caption("Base de données des produits — chaque produit a sa propre fiche technique stockée sur GCS")
 st.markdown("---")
 
 with st.expander("➕ Nouveau produit", expanded=False):
     with st.form("form_new_product", clear_on_submit=True):
         c1, c2 = st.columns(2)
-        designation  = c1.text_input("Désignation *", placeholder="Tampon EP d800 d400kn")
+        designation   = c1.text_input("Désignation *", placeholder="Tampon EP d800 d400kn")
         supplier_name = c2.text_input("Fournisseur *", placeholder="ALKERN / NORMANDY TUB")
         category = st.text_input("Catégorie", placeholder="assainissement des EP")
         if st.form_submit_button("Ajouter", type="primary"):
@@ -50,16 +50,57 @@ st.markdown(
 if not products:
     st.info("Aucun produit. Les produits se créent automatiquement quand vous ajoutez une fiche.")
 else:
-    hcols = st.columns([3, 3, 2, 1])
-    for col, label in zip(hcols, ["**Désignation**", "**Fournisseur**", "**Catégorie**", ""]):
+    hcols = st.columns([3, 2, 2, 3, 1])
+    for col, label in zip(hcols, ["**Désignation**", "**Fournisseur**", "**Catégorie**", "**Fiche technique**", ""]):
         col.markdown(label)
     st.divider()
+
     for p in products:
-        cols = st.columns([3, 3, 2, 1])
+        cols = st.columns([3, 2, 2, 3, 1])
         cols[0].write(p["designation"])
         cols[1].write(p["supplier_name"])
         cols[2].write(p["category"] or "—")
-        if cols[3].button("🗑️", key=f"delprod_{p['id']}"):
-            with get_db() as db:
-                crud.delete_product(db, p["id"])
-            st.rerun()
+
+        with cols[3]:
+            blob = p.get("datasheet_url")
+            if blob:
+                try:
+                    pdf_bytes = storage.download_datasheet(blob)
+                    safe = p["designation"][:20].replace(" ", "_")
+                    st.download_button("📄 Télécharger", data=pdf_bytes,
+                                       file_name=f"FT_{safe}.pdf",
+                                       mime="application/pdf",
+                                       key=f"dl_prod_{p['id']}")
+                except Exception as e:
+                    st.warning(f"Indisponible : {e}")
+                if st.button("✕ Retirer", key=f"rm_prod_{p['id']}"):
+                    try:
+                        storage.delete_datasheet(blob)
+                    except Exception:
+                        pass
+                    with get_db() as db:
+                        crud.update_product_datasheet_url(db, p["id"], None)
+                    st.rerun()
+            else:
+                up = st.file_uploader("PDF", type="pdf", key=f"up_prod_{p['id']}",
+                                      label_visibility="collapsed")
+                if up:
+                    with st.spinner("Upload..."):
+                        try:
+                            blob_name = storage.upload_datasheet(up.getvalue(), f"product_{p['id']}")
+                            with get_db() as db:
+                                crud.update_product_datasheet_url(db, p["id"], blob_name)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur upload : {e}")
+
+        with cols[4]:
+            if st.button("🗑️", key=f"delprod_{p['id']}"):
+                if p.get("datasheet_url"):
+                    try:
+                        storage.delete_datasheet(p["datasheet_url"])
+                    except Exception:
+                        pass
+                with get_db() as db:
+                    crud.delete_product(db, p["id"])
+                st.rerun()
