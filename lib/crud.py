@@ -182,8 +182,8 @@ def delete_agrement(db: Session, agrement_id: str):
 
 
 def _ensure_supplier(db: Session, name: str):
-    if name and not db.query(Supplier).filter(Supplier.name.ilike(name.strip())).first():
-        db.add(Supplier(id=_id(), name=name.strip()))
+    if name and not db.query(Supplier).filter(Supplier.name == name).first():
+        db.add(Supplier(id=_id(), name=name))
 
 
 def _ensure_product(db: Session, designation: str, supplier_name: str, category: str):
