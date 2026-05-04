@@ -6,4 +6,3 @@ python-dotenv>=1.0.0
 Pillow>=10.0.0
 psycopg2-binary>=2.9.0
 google-cloud-storage>=2.16.0
-streamlit-searchbox>=0.1.10

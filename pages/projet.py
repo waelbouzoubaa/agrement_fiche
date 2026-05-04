@@ -2,7 +2,6 @@ import os
 from datetime import date, datetime
 
 import streamlit as st
-from streamlit_searchbox import st_searchbox
 from lib.db import get_db, UPLOADS_DIR, init_db
 from lib import crud, storage
 from lib.pdf import generate_doe
@@ -11,7 +10,7 @@ init_db()
 
 # ── Reset formulaire (doit s'exécuter AVANT l'instanciation des widgets) ──────
 if st.session_state.get("ag_reset_form"):
-    for k in ["ag_des_select", "ag_supplier_search", "ag_supplier", "ag_category",
+    for k in ["ag_des_select", "ag_supplier_select", "ag_supplier", "ag_category",
               "ag_des_manual", "ag_submitted_by", "show_add_form"]:
         st.session_state.pop(k, None)
     st.session_state.pop("ag_reset_form", None)
@@ -145,16 +144,30 @@ if show_form:
         designation_manuelle = None
         st.caption(f"✅ **{st.session_state['ag_des_select']}**")
 
-    # ── Fournisseur avec searchbox ────────────────────────────────────────────
-    sup_names = [s["name"] for s in suppliers]
+    # ── Fournisseur avec suggestions ─────────────────────────────────────────
+    sup_options = ["— Nouveau fournisseur —"] + [s["name"] for s in suppliers]
 
-    def search_suppliers_ag(term: str):
-        t = (term or "").lower()
-        return [n for n in sup_names if t in n.lower()]
+    def on_supplier_change():
+        sel = st.session_state.get("ag_supplier_select", "— Nouveau fournisseur —")
+        if sel != "— Nouveau fournisseur —":
+            st.session_state["ag_supplier"] = sel
 
-    ag_supplier = st_searchbox(search_suppliers_ag, key="ag_supplier_search",
-                               placeholder="Fournisseur (tape pour chercher ou créer...)",
-                               label="Fournisseur / Provenance *")
+    st.selectbox(
+        "Fournisseur / Provenance *",
+        sup_options,
+        key="ag_supplier_select",
+        on_change=on_supplier_change,
+        help="Sélectionnez un fournisseur existant ou choisissez 'Nouveau fournisseur'",
+    )
+
+    if st.session_state["ag_supplier_select"] == "— Nouveau fournisseur —":
+        st.text_input(
+            "Nom du fournisseur *",
+            key="ag_supplier",
+            placeholder="ALKERN / NORMANDY TUB",
+        )
+    else:
+        st.session_state["ag_supplier"] = st.session_state["ag_supplier_select"]
 
     c1, c2 = st.columns(2)
     c1.text_input("Catégorie / Utilisation", key="ag_category",
@@ -171,7 +184,7 @@ if show_form:
         else:
             final_des = sel
 
-        final_sup = (ag_supplier or st.session_state.get("ag_supplier", "")).strip()
+        final_sup = st.session_state.get("ag_supplier", "").strip()
         final_cat = st.session_state.get("ag_category", "").strip()
         final_by  = st.session_state.get("ag_submitted_by", "").strip()
 

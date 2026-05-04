@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_searchbox import st_searchbox
 from lib.db import get_db, init_db
 from lib import crud, storage
 
@@ -30,28 +29,32 @@ st.markdown("---")
 with st.expander("➕ Nouveau produit", expanded=False):
     with get_db() as db:
         suppliers_list = crud.get_suppliers(db)
-    sup_names = [s["name"] for s in suppliers_list]
 
-    def search_suppliers(term: str):
-        t = (term or "").lower()
-        return [n for n in sup_names if t in n.lower()]
+    sup_options = ["— Nouveau fournisseur —"] + [s["name"] for s in suppliers_list]
+
+    if "prod_sup_select" not in st.session_state:
+        st.session_state["prod_sup_select"] = "— Nouveau fournisseur —"
 
     c1, c2 = st.columns(2)
     designation = c1.text_input("Désignation *", placeholder="Tampon EP d800 d400kn",
                                 key="prod_designation")
-    with c2:
-        supplier_name = st_searchbox(search_suppliers, key="prod_sup_search",
-                                     placeholder="Fournisseur (tape pour chercher ou créer...)",
-                                     label="Fournisseur *")
+    c2.selectbox("Fournisseur *", sup_options, key="prod_sup_select")
+
+    if st.session_state["prod_sup_select"] == "— Nouveau fournisseur —":
+        supplier_name = st.text_input("Nom du fournisseur *",
+                                      placeholder="ALKERN / NORMANDY TUB",
+                                      key="prod_sup_manual")
+    else:
+        supplier_name = st.session_state["prod_sup_select"]
 
     category = st.text_input("Catégorie", placeholder="assainissement des EP",
                              key="prod_category")
 
     if st.button("Ajouter", type="primary"):
-        final_sup = (supplier_name or "").strip()
-        if designation.strip() and final_sup:
+        if designation.strip() and supplier_name.strip():
             with get_db() as db:
-                crud.create_product(db, designation.strip(), final_sup, category.strip())
+                crud.create_product(db, designation.strip(),
+                                    supplier_name.strip(), category.strip())
             st.success("Produit ajouté !")
             st.session_state["prod_reset"] = True
             st.rerun()
