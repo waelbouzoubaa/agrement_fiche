@@ -2,6 +2,12 @@ import streamlit as st
 from lib.db import get_db, init_db
 from lib import crud, storage
 
+# Reset formulaire nouveau produit
+if st.session_state.get("prod_reset"):
+    for k in ["prod_designation", "prod_sup_select", "prod_sup_manual", "prod_category"]:
+        st.session_state.pop(k, None)
+    st.session_state.pop("prod_reset", None)
+
 init_db()
 
 # ── En-tête avec logo ─────────────────────────────────────────────────────────
@@ -21,20 +27,39 @@ st.caption("Base de données des produits — chaque produit a sa propre fiche t
 st.markdown("---")
 
 with st.expander("➕ Nouveau produit", expanded=False):
-    with st.form("form_new_product", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        designation   = c1.text_input("Désignation *", placeholder="Tampon EP d800 d400kn")
-        supplier_name = c2.text_input("Fournisseur *", placeholder="ALKERN / NORMANDY TUB")
-        category = st.text_input("Catégorie", placeholder="assainissement des EP")
-        if st.form_submit_button("Ajouter", type="primary"):
-            if designation.strip() and supplier_name.strip():
-                with get_db() as db:
-                    crud.create_product(db, designation.strip(),
-                                        supplier_name.strip(), category.strip())
-                st.success("Produit ajouté !")
-                st.rerun()
-            else:
-                st.error("Désignation et fournisseur obligatoires.")
+    with get_db() as db:
+        suppliers_list = crud.get_suppliers(db)
+
+    sup_options = ["— Nouveau fournisseur —"] + [s["name"] for s in suppliers_list]
+
+    if "prod_sup_select" not in st.session_state:
+        st.session_state["prod_sup_select"] = "— Nouveau fournisseur —"
+
+    c1, c2 = st.columns(2)
+    designation = c1.text_input("Désignation *", placeholder="Tampon EP d800 d400kn",
+                                key="prod_designation")
+    c2.selectbox("Fournisseur *", sup_options, key="prod_sup_select")
+
+    if st.session_state["prod_sup_select"] == "— Nouveau fournisseur —":
+        supplier_name = st.text_input("Nom du fournisseur *",
+                                      placeholder="ALKERN / NORMANDY TUB",
+                                      key="prod_sup_manual")
+    else:
+        supplier_name = st.session_state["prod_sup_select"]
+
+    category = st.text_input("Catégorie", placeholder="assainissement des EP",
+                             key="prod_category")
+
+    if st.button("Ajouter", type="primary"):
+        if designation.strip() and supplier_name.strip():
+            with get_db() as db:
+                crud.create_product(db, designation.strip(),
+                                    supplier_name.strip(), category.strip())
+            st.success("Produit ajouté !")
+            st.session_state["prod_reset"] = True
+            st.rerun()
+        else:
+            st.error("Désignation et fournisseur obligatoires.")
 
 q = st.text_input("🔍 Rechercher", placeholder="Tampon, bordure, béton...")
 
