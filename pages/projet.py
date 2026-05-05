@@ -245,7 +245,24 @@ else:
                 except Exception as e:
                     st.warning(f"Fichier indisponible : {e}")
             else:
-                st.caption("— Aller dans **Produits** pour uploader la fiche technique")
+                up = st.file_uploader("PDF", type="pdf", key=f"up_{a['id']}",
+                                      label_visibility="collapsed")
+                if up:
+                    with st.spinner("Upload..."):
+                        try:
+                            matched_product = next(
+                                (p for p in products if p["designation"] == a["designation"]), None
+                            )
+                            target_id = f"product_{matched_product['id']}" if matched_product else a["id"]
+                            blob_name = storage.upload_datasheet(up.getvalue(), target_id)
+                            with get_db() as db:
+                                if matched_product:
+                                    crud.update_product_datasheet_url(db, matched_product["id"], blob_name)
+                                else:
+                                    crud.update_agrement_datasheet_url(db, a["id"], blob_name)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur upload : {e}")
 
         with cols[5]:
             if st.button("🗑️", key=f"delag_{a['id']}"):
